@@ -200,7 +200,7 @@ input[type=radio],input[type=checkbox]{accent-color:#0e98b2}
   <section class="hero">
     <div class="heroText">
       <span class="eyebrow">RodDose Rx · asystent dla aptek</span>
-      <h1>Od proszku do<br><span style="color:var(--red)">doboru dysku.</span></h1>
+      <h1>Szybki dobór dysku <br><span style="color:var(--red)">do dozowania</span></h1>
       <p>Oblicz gęstość nasypową, sprawdź czy dostępny dysk pozwoli przygotować żądaną masę i przejdź przez pracę krok po kroku.</p>
       <div class="pills"><span class="pill">Dysk 9 · 3,5 ml</span><span class="pill">Dysk 10 · 5,5 ml</span><span class="pill">Dysk 11 · 8 ml</span></div>
     </div>
@@ -211,6 +211,7 @@ input[type=radio],input[type=checkbox]{accent-color:#0e98b2}
     <button data-tab="density" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M7 3h10M8 3v10l-4 7h16l-4-7V3M6 16h12"/></svg>Gęstość nasypowa</button>
     <button data-tab="steps" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 7l2 2 4-4M13 7h7M4 16l2 2 4-4M13 16h7"/></svg>Krok po kroku</button>
     <button data-tab="qc" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 20h16M7 17V9m5 8V4m5 13v-6"/></svg>Próba ważenia</button>
+    <button data-tab="history" role="tab" aria-selected="false"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg>Historia dozowań</button>
   </nav>
 
   <section class="panel active" id="panel-calc" role="tabpanel">
@@ -218,13 +219,13 @@ input[type=radio],input[type=checkbox]{accent-color:#0e98b2}
       <div>
         <div class="card">
           <div class="stepHead"><span class="stepNum">1</span><h2>Co chcesz dozować?</h2></div>
-          <div class="field"><label for="powder">Substancja lub mieszanka (opcjonalnie)</label><input id="powder" type="text" placeholder="np. Laktoza jednowodna, materiał testowy"></div>
+          <div class="field"><label for="powder">Nazwa dozowanego proszku</label><input id="powder" type="text" maxlength="160" placeholder="np. Laktoza jednowodna, materiał testowy"></div>
           <div class="fields">
             <div class="field"><label for="target">Docelowa masa 1 porcji (g)</label><input id="target" type="text" inputmode="decimal" value="1"></div>
             <div class="field"><label for="portions">Liczba porcji (szt.)</label><input id="portions" type="number" min="1" max="99999" value="10"></div>
           </div>
           <div class="field"><label for="available">Ile proszku masz do dyspozycji? (g)</label><input id="available" type="text" inputmode="decimal" value="15"></div>
-          <div class="prompt"><div><b>Przykład Huberta</b><br><span>10 porcji × 1 g, gęstość 0,5 g/ml</span></div><button class="quickbtn" id="hubertExample" type="button">Wstaw dane</button></div>
+          <div class="prompt"><div><b>Przykład testowy</b><br><span>10 porcji × 1 g, gęstość 0,5 g/ml</span></div><button class="quickbtn" id="testExample" type="button">Wstaw dane</button></div>
           <p class="hint">Liczba gramów wsypanych do zbiornika nie zmienia masy pojedynczej dawki. O niej decyduje objętość dysku i gęstość nasypowa proszku.</p>
         </div>
         <div class="card">
@@ -364,6 +365,15 @@ input[type=radio],input[type=checkbox]{accent-color:#0e98b2}
           <div class="field"><label for="vibration">Wibracje</label><select id="vibration"><option value="OFF">Wyłączone</option><option value="V1">V1</option><option value="V2">V2</option><option value="V3">V3</option><option value="V4">V4</option></select></div>
         </div>
         <div class="prompt"><div><span>Dawka docelowa</span><br><b id="qcTargetLabel">1 g</b></div><button class="quickbtn" type="button" data-open="calc">Zmiana celu</button></div>
+        <div class="field">
+          <label for="trialKind">Rodzaj próby</label>
+          <select id="trialKind" aria-describedby="trialKindHint">
+            <option value="demo" selected>Demonstracyjna</option>
+            <option value="real">Rzeczywista</option>
+          </select>
+          <p class="hint" id="trialKindHint">Demonstracyjna służy do testowania aplikacji. Rzeczywista zawiera wyniki pracy z DOSE-Rx ONE.</p>
+        </div>
+        <p class="hint" id="currentTrialStatus"></p>
         <div id="weights" class="weights"></div>
         <div class="buttonRow noPrint"><button type="button" id="clearWeights" class="button secondary">Wyczyść pomiary</button></div>
       </div>
@@ -380,13 +390,31 @@ input[type=radio],input[type=checkbox]{accent-color:#0e98b2}
         <div class="note warn"><strong>Bez automatycznej oceny „zaliczone”.</strong> Kryteria akceptacji i właściwy plan kwalifikacji zależą od materiału i procedury apteki. Sam CV albo mały błąd średniej nie wystarcza do zatwierdzenia metody.</div>
         <div class="buttonRow noPrint">
           <button class="button" type="button" id="saveReport">Pobierz raport TXT</button>
+          <button class="button secondary" type="button" id="pdfReport">Pobierz raport PDF</button>
           <button class="button secondary" type="button" id="printReport">Drukuj raport</button>
         </div>
-        <p class="hint" id="reportMessage" style="margin-top:9px"></p>
+        <div class="buttonRow noPrint">
+          <button class="button" type="button" id="saveTrial">Zapisz próbę</button>
+          <button class="button secondary" type="button" data-open="history">Historia dozowań</button>
+        </div>
+        <p class="hint" id="reportMessage" role="status" style="margin-top:9px"></p>
         <div class="divider"></div>
         <h3>O co zadbać w protokole?</h3>
         <p>Uzupełnij nazwę materiału i numer serii, datę, ustawienia wibracji oraz dysk. Przed porównywaniem prób trzymaj te same parametry napełnienia i otoczenia.</p>
       </div>
+    </div>
+  </section>
+  <section class="panel" id="panel-history" role="tabpanel">
+    <div class="card">
+      <h2>Historia dozowań</h2>
+      <p>Próby są zapisywane w tej przeglądarce. Tylko próby rzeczywiste można oznaczyć jako zweryfikowane. Weryfikacja próby nie oznacza zatwierdzenia receptury farmaceutycznej.</p>
+      <div class="buttonRow">
+        <button class="button secondary" type="button" id="exportHistory">Eksportuj JSON</button>
+        <button class="button secondary" type="button" id="importHistory">Importuj JSON</button>
+        <input type="file" id="historyFile" accept=".json,application/json" hidden>
+      </div>
+      <p class="hint" id="historyMessage" role="status"></p>
+      <div id="trialList"></div>
     </div>
   </section>
 </main>
@@ -405,11 +433,16 @@ input[type=radio],input[type=checkbox]{accent-color:#0e98b2}
  const nf=(v,d=3)=>Number.isFinite(v)?v.toLocaleString("pl-PL",{maximumFractionDigits:d}):"—";
  const esc=(s)=>String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");
  const blank=(v)=>v===null || v===undefined;
- let state=null,latestQC=null;
- function density(){
-  const mode=document.querySelector('input[name="densityMode"]:checked')?.value;
-  if(mode==="known")return parse(value("knownDensity"));
-  const m=parse(value("sampleMass")),v=parse(value("sampleVolume"));
+ const trialFields=["powder","target","portions","available","sampleMass","sampleVolume","knownDensity","shotLimit","priming","reserve","testDisk","vibration"];
+ const historyKey="roddose-rx.history.v1";
+ const weightInputs=()=>[...document.querySelectorAll("[data-weight]")];
+ const densityMode=()=>document.querySelector('input[name="densityMode"]:checked').value;
+ const kindLabels={demo:"Demonstracyjna",real:"Rzeczywista"};
+ const confirmRealTrial=()=>window.confirm("Czy potwierdzasz, że dane pochodzą z pracy z DOSE-Rx ONE i jest to próba rzeczywista?");
+ let state=null,latestQC=null,openedTrialId=null;
+ function density(fields={knownDensity:value("knownDensity"),sampleMass:value("sampleMass"),sampleVolume:value("sampleVolume")},mode=densityMode()){
+  if(mode==="known")return parse(fields.knownDensity);
+  const m=parse(fields.sampleMass),v=parse(fields.sampleVolume);
   return m>0&&v>0?m/v:NaN;
  }
  function pickBest(disk,dose,rho,maxShots){
@@ -425,9 +458,14 @@ input[type=radio],input[type=checkbox]{accent-color:#0e98b2}
   }
   return best;
  }
+ function trialParameters({fields,mode}){
+  const target=parse(fields.target),portion=parse(fields.portions),available=parse(fields.available),
+   rho=density(fields,mode),maxShots=parse(fields.shotLimit),priming=parse(fields.priming),reserve=parse(fields.reserve);
+  const valid=[target,available,rho,reserve].every(Number.isFinite)&&target>0&&Number.isInteger(portion)&&portion>0&&available>=0&&rho>0&&Number.isInteger(maxShots)&&maxShots>=1&&priming>=0&&Number.isInteger(priming)&&reserve>=0;
+  return {valid,target,portion,available,rho,maxShots,priming,reserve};
+ }
  function collect(){
-  const target=parse(value("target")),portion=parse(value("portions")),available=parse(value("available")),rho=density(),maxShots=parse(value("shotLimit")),priming=parse(value("priming")),reserve=parse(value("reserve"));
-  const valid=target>0&&Number.isInteger(portion)&&portion>0&&available>=0&&rho>0&&Number.isInteger(maxShots)&&maxShots>=1&&priming>=0&&Number.isInteger(priming)&&reserve>=0;
+  const {valid,target,portion,available,rho,maxShots,priming,reserve}=trialParameters(snapshot());
   const per=valid?disks.map(d=>pickBest(d,target,rho,maxShots)):null;
   const ranking=valid?[...per].sort((a,b)=>Math.abs(a.rel)-Math.abs(b.rel)||a.shots-b.shots):[];
   const best=ranking[0]||null;
@@ -519,6 +557,7 @@ input[type=radio],input[type=checkbox]{accent-color:#0e98b2}
    const pct=n&&t>0?100*(mean-t)/t:NaN;
    const cv=n>1&&mean>0?100*sd/mean:NaN;
    latestQC={x,mean,sd,pct,cv};
+   updateTrialStatus();
    $("statCount").textContent=n+" / 10";
    $("statMean").textContent=n?nf(mean,4)+" g":"—";
    $("statBias").textContent=Number.isFinite(pct)?(pct>=0?"+":"")+nf(pct,2)+"%":"—";
@@ -529,16 +568,21 @@ input[type=radio],input[type=checkbox]{accent-color:#0e98b2}
  function activate(tab){
   for(const b of document.querySelectorAll("[data-tab]"))b.setAttribute("aria-selected",b.dataset.tab===tab?"true":"false");
   for(const panel of document.querySelectorAll(".panel"))panel.classList.toggle("active",panel.id==="panel-"+tab);
+  if(tab==="history")showHistory();
   window.scrollTo({top:0,behavior:"smooth"});
  }
  function makeReport(){
   const s=state??collect(),v=latestQC??{};
   const weights=[...document.querySelectorAll("[data-weight]")].map(e=>e.value.trim());
   const powder=value("powder")||"(nie podano)";
+  const trial=matchingTrial();
   const rows=[
    "DOSE-Rx ONE — raport z prób technicznych",
    "Data: "+new Date().toLocaleString("pl-PL"),
    "Materiał: "+powder,
+   "Rodzaj próby: "+kindLabels[value("trialKind")],
+   ...(value("trialKind")==="real"?["Weryfikacja: "+trialStatus(trial)]:[]),
+   ...(trial?["Zapisano: "+formatDate(trial.savedAt)]:[]),
    "Docelowa masa porcji (g): "+nf(s.target,4),
    "Liczba planowanych porcji: "+(s.portion||"—"),
    "Gęstość nasypowa (g/ml): "+nf(s.rho,5),
@@ -557,15 +601,297 @@ input[type=radio],input[type=checkbox]{accent-color:#0e98b2}
    "Odchylenie od celu (%): "+nf(v.pct,3),
    "CV (%): "+nf(v.cv,3),
    "",
-   "Uwaga: raport demonstracyjny, brak kwalifikacji/akceptacji metody.",
+   "Weryfikacja próby nie oznacza zatwierdzenia receptury farmaceutycznej.",
    "Wymagana kontrola na wadze i zgodność z zatwierdzoną procedurą."
   ];
   return rows.join("\n");
  }
- function saveText(filename,text){
-  const blob=new Blob([new Uint8Array([0xEF,0xBB,0xBF]),text],{type:"text/plain;charset=utf-8"});
+ function download(filename,blob){
   const url=URL.createObjectURL(blob),a=document.createElement("a");
   a.href=url;a.download=filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),500);
+ }
+ function snapshot(){
+  return {
+   fields:Object.fromEntries(trialFields.map(id=>[id,value(id)])),
+   mode:densityMode(),
+   weights:weightInputs().map(input=>input.value.trim())
+  };
+ }
+ function validTrial(trial){
+  return trial && typeof trial.id==="string" && trial.id.length>0 &&
+   typeof trial.savedAt==="string" && Number.isFinite(Date.parse(trial.savedAt)) &&
+   (trial.kind==="demo" || trial.kind==="real") &&
+   (trial.verifiedAt===null || (trial.kind==="real" && typeof trial.verifiedAt==="string" && Number.isFinite(Date.parse(trial.verifiedAt)))) &&
+   trial.data && ["measure","known"].includes(trial.data.mode) &&
+   trial.data.fields && trialFields.every(id=>typeof trial.data.fields[id]==="string") &&
+   trialParameters(trial.data).valid &&
+   trial.data.fields.powder.trim().length>0 && trial.data.fields.powder.length<=160 &&
+   ["shotLimit","testDisk","vibration"].every(id=>Array.from($(id).options).some(option=>option.value===trial.data.fields[id])) &&
+   Array.isArray(trial.data.weights) && trial.data.weights.length===weightInputs().length &&
+   trial.data.weights.every(weight=>typeof weight==="string" && (!weight || (parse(weight)>0 && Number.isFinite(parse(weight)))));
+ }
+ function readHistory(){
+  const raw=localStorage.getItem(historyKey);
+  if(raw===null)return [];
+  return parseHistory(raw);
+ }
+ function parseHistory(raw){
+  const backup=JSON.parse(raw);
+  if(![1,2].includes(backup?.version) || !Array.isArray(backup.trials)){
+   throw new Error("Nieprawidłowy format historii.");
+  }
+  // Legacy records had no trial kind, so they cannot attest to real measurements.
+  const trials=backup.version===1?
+   backup.trials.map(trial=>({...trial,kind:"demo",verifiedAt:null})):backup.trials;
+  if(!trials.every(validTrial) || new Set(trials.map(trial=>trial.id)).size!==trials.length){
+   throw new Error("Nieprawidłowy format historii.");
+  }
+  return trials;
+ }
+ function historyJson(trials){
+  return JSON.stringify({version:2,trials},null,2);
+ }
+ function storeHistory(trials){
+  localStorage.setItem(historyKey,historyJson(trials));
+ }
+ function formatDate(date){
+  return new Date(date).toLocaleString("pl-PL");
+ }
+ function trialStatus(trial){
+  return trial?.verifiedAt?"Zweryfikowana przez użytkownika ("+formatDate(trial.verifiedAt)+")":"Próba niezweryfikowana";
+ }
+ function matchingTrial(){
+  if(!openedTrialId)return null;
+  try{
+   const trial=readHistory().find(entry=>entry.id===openedTrialId);
+   const current=snapshot();
+   if(trial && trial.kind===value("trialKind") && trial.data.mode===current.mode &&
+      trialFields.every(id=>current.fields[id]===trial.data.fields[id]) &&
+      current.weights.every((weight,i)=>weight===trial.data.weights[i]))return trial;
+  }catch{
+   // A report cannot use a verification status if storage cannot be read.
+  }
+  return null;
+ }
+ function updateTrialStatus(){
+  const powder=value("powder").trim() || "Nie podano nazwy proszku";
+  const kind=value("trialKind");
+  $("currentTrialStatus").textContent=powder+" · "+kindLabels[kind]+
+   (kind==="real"?" · "+trialStatus(matchingTrial()):"");
+ }
+ function saveTrial(){
+  const data=snapshot();
+  const message=$("reportMessage");
+  if(!data.fields.powder.trim()){
+   message.textContent="Uzupełnij nazwę dozowanego proszku w kalkulatorze.";
+   return;
+  }
+  const id=Array.from(crypto.getRandomValues(new Uint8Array(16)),byte=>byte.toString(16).padStart(2,"0")).join("");
+  const trial={id,savedAt:new Date().toISOString(),kind:value("trialKind"),verifiedAt:null,data};
+  if(!validTrial(trial)){
+   message.textContent="Sprawdź parametry kalkulatora i wpisane masy. Puste pola pomiarów można zapisać.";
+   return;
+  }
+  try{
+   storeHistory([trial,...readHistory()]);
+   openedTrialId=trial.id;
+   updateTrialStatus();
+   message.textContent="Zapisano próbę. Rodzaj: "+kindLabels[trial.kind]+".";
+  }catch{
+   message.textContent="Nie udało się zapisać próby w pamięci przeglądarki.";
+  }
+ }
+ function openTrial(trial){
+  $("trialKind").value=trial.kind;
+  for(const id of trialFields)$(id).value=trial.data.fields[id];
+  const mode=document.querySelector('input[name="densityMode"][value="'+trial.data.mode+'"]');
+  mode.checked=true;
+  weightInputs().forEach((input,i)=>{input.value=trial.data.weights[i]});
+  openedTrialId=trial.id;
+  mode.dispatchEvent(new Event("change"));
+  $("reportMessage").textContent="Otwarta próba z "+formatDate(trial.savedAt)+".";
+  activate("qc");
+ }
+ function showHistory(){
+  const list=$("trialList");
+  list.replaceChildren();
+  $("historyMessage").textContent="";
+  let trials;
+  try{
+   trials=readHistory();
+  }catch{
+   $("historyMessage").textContent="Nie udało się odczytać historii z pamięci przeglądarki.";
+   return;
+  }
+  if(!trials.length){
+   $("historyMessage").textContent="Brak zapisanych prób.";
+   return;
+  }
+  for(const trial of trials.sort((a,b)=>Date.parse(b.savedAt)-Date.parse(a.savedAt))){
+   const row=document.createElement("article");
+   row.className="note";
+   const title=document.createElement("strong");
+   title.textContent=trial.data.fields.powder;
+   const details=document.createElement("p");
+   const fields=trial.data.fields;
+   const rho=density(fields,trial.data.mode);
+   details.textContent=formatDate(trial.savedAt)+" · "+nf(rho,5)+" g/ml · Dysk "+fields.testDisk+
+    " · Wibracje: "+fields.vibration+" · Pomiary: "+trial.data.weights.filter(Boolean).length+"/10";
+   const status=document.createElement("p");
+   status.textContent=kindLabels[trial.kind]+(trial.kind==="real"?" · "+trialStatus(trial):"");
+   const actions=document.createElement("div");
+   actions.className="buttonRow";
+   actions.append(historyButton("Otwórz próbę",()=>openTrial(trial)));
+   const nextKind=trial.kind==="demo"?"real":"demo";
+   actions.append(historyButton(nextKind==="real"?"Zmień na rzeczywistą":"Zmień na demonstracyjną",()=>{
+    if(nextKind==="real" && !confirmRealTrial())return;
+    changeHistoryTrial(trial.id,entry=>({...entry,kind:nextKind,verifiedAt:null}),"Zmieniono rodzaj próby.",nextKind);
+   }));
+   if(trial.kind==="real"){
+    actions.append(historyButton(trial.verifiedAt?"Cofnij weryfikację":"Oznacz jako zweryfikowaną",()=>{
+     const verifiedAt=trial.verifiedAt?null:new Date().toISOString();
+     changeHistoryTrial(trial.id,entry=>entry.kind==="real"?{...entry,verifiedAt}:entry,
+      verifiedAt?"Oznaczono próbę jako zweryfikowaną przez użytkownika.":"Cofnięto oznaczenie weryfikacji.");
+    }));
+   }
+   actions.append(historyButton("Usuń próbę",()=>{
+    if(window.confirm("Czy na pewno chcesz usunąć tę próbę?")){
+     changeHistoryTrial(trial.id,()=>null,"Usunięto próbę.");
+    }
+   }));
+   row.append(title,details,status,actions);
+   list.append(row);
+  }
+ }
+ function historyButton(label,action){
+  const button=document.createElement("button");
+  button.type="button";
+  button.className="button secondary";
+  button.textContent=label;
+  button.addEventListener("click",action);
+  return button;
+ }
+ function changeHistoryTrial(id,change,message,nextKind){
+  try{
+   const trials=readHistory();
+   const index=trials.findIndex(entry=>entry.id===id);
+   if(index<0){
+    showHistory();
+    $("historyMessage").textContent="Ta próba nie jest już dostępna.";
+    return;
+   }
+   const updateForm=nextKind && matchingTrial()?.id===id;
+   const updated=change(trials[index]);
+   trials.splice(index,1,...(updated?[updated]:[]));
+   storeHistory(trials);
+   if(updateForm)$("trialKind").value=nextKind;
+   if(!updated && openedTrialId===id)openedTrialId=null;
+   showHistory();
+   updateTrialStatus();
+   $("historyMessage").textContent=message;
+  }catch{
+   $("historyMessage").textContent="Nie udało się zmienić historii w pamięci przeglądarki.";
+  }
+ }
+ function exportHistory(){
+  try{
+   download("RodDose-Rx-historia.json",new Blob([historyJson(readHistory())],{type:"application/json"}));
+   $("historyMessage").textContent="Przygotowano eksport historii.";
+  }catch{
+   $("historyMessage").textContent="Nie udało się wyeksportować historii.";
+  }
+ }
+ async function importHistory(event){
+  const file=event.target.files[0];
+  event.target.value="";
+  if(!file)return;
+  let imported;
+  try{
+   imported=parseHistory(await file.text());
+  }catch{
+   $("historyMessage").textContent="Plik nie zawiera poprawnej historii RodDose Rx.";
+   return;
+  }
+  try{
+   const trials=readHistory();
+   const existing=new Set(trials.map(trial=>trial.id));
+   const added=imported.filter(trial=>!existing.has(trial.id)).map(trial=>({...trial,verifiedAt:null}));
+   storeHistory([...trials,...added]);
+   showHistory();
+   $("historyMessage").textContent="Dodano prób: "+added.length+". Pominięto istniejące: "+(imported.length-added.length)+". Importowane próby rzeczywiste są niezweryfikowane.";
+  }catch{
+   $("historyMessage").textContent="Nie udało się zapisać importowanej historii.";
+  }
+ }
+ function reportPdf(report){
+  // Render locally with browser fonts so the PDF preserves Polish characters.
+  const width=595,height=842,margin=42,lineHeight=18,scale=2;
+  const canvas=document.createElement("canvas");
+  canvas.width=width*scale;
+  canvas.height=height*scale;
+  const ctx=canvas.getContext("2d");
+  ctx.scale(scale,scale);
+  ctx.font="11px sans-serif";
+  const lines=[];
+  for(const paragraph of report.split("\n")){
+   let line="";
+   for(const character of paragraph){
+    if(ctx.measureText(line+character).width>width-2*margin){
+     const space=line.lastIndexOf(" ");
+     lines.push(space>0?line.slice(0,space):line);
+     line=(space>0?line.slice(space+1):"")+character;
+    }else{
+     line+=character;
+    }
+   }
+   lines.push(line);
+  }
+
+  // PDF streams may contain binary data. Track offsets in bytes for the xref table.
+  const encoder=new TextEncoder();
+  const parts=[],offsets=[0],pageIds=[];
+  let length=0;
+  function append(data){
+   const bytes=typeof data==="string"?encoder.encode(data):data;
+   parts.push(bytes);
+   length+=bytes.length;
+  }
+  function object(id,...body){
+   offsets[id]=length;
+   append(id+" 0 obj\n");
+   body.forEach(append);
+   append("\nendobj\n");
+  }
+  append("%PDF-1.4\n");
+  const linesPerPage=Math.floor((height-2*margin)/lineHeight);
+  for(let start=0;start<lines.length;start+=linesPerPage){
+   ctx.fillStyle="#fff";
+   ctx.fillRect(0,0,width,height);
+   ctx.fillStyle="#17212a";
+   lines.slice(start,start+linesPerPage).forEach((line,i)=>ctx.fillText(line,margin,margin+i*lineHeight));
+   const jpeg=Uint8Array.from(atob(canvas.toDataURL("image/jpeg",0.94).split(",")[1]),character=>character.charCodeAt(0));
+   const pageId=3+pageIds.length*3,imageId=pageId+1,contentId=pageId+2;
+   pageIds.push(pageId);
+   object(pageId,`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${width} ${height}] /Resources << /XObject << /Report ${imageId} 0 R >> >> /Contents ${contentId} 0 R >>`);
+   object(imageId,`<< /Type /XObject /Subtype /Image /Width ${canvas.width} /Height ${canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >>\nstream\n`,jpeg,"\nendstream");
+   const commands=`q ${width} 0 0 ${height} 0 0 cm /Report Do Q\n`;
+   object(contentId,`<< /Length ${commands.length} >>\nstream\n${commands}endstream`);
+  }
+  object(1,"<< /Type /Catalog /Pages 2 0 R >>");
+  object(2,`<< /Type /Pages /Kids [${pageIds.map(id=>id+" 0 R").join(" ")}] /Count ${pageIds.length} >>`);
+  const xref=length;
+  append(`xref\n0 ${offsets.length}\n0000000000 65535 f \n`);
+  for(const offset of offsets.slice(1))append(String(offset).padStart(10,"0")+" 00000 n \n");
+  append(`trailer\n<< /Size ${offsets.length} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+  return new Blob(parts,{type:"application/pdf"});
+ }
+ function downloadPdf(){
+  try{
+   download("DoseRx_ONE_raport.pdf",reportPdf(makeReport()));
+   $("reportMessage").textContent="Przygotowano raport PDF.";
+  }catch{
+   $("reportMessage").textContent="Nie udało się przygotować raportu PDF.";
+  }
  }
  for(const tab of document.querySelectorAll("[data-tab]"))tab.addEventListener("click",()=>activate(tab.dataset.tab));
  for(const btn of document.querySelectorAll("[data-open]"))btn.addEventListener("click",()=>activate(btn.dataset.open));
@@ -576,7 +902,9 @@ input[type=radio],input[type=checkbox]{accent-color:#0e98b2}
   $("measureFields").classList.toggle("hidden",!measure);$("knownFields").classList.toggle("hidden",measure);
   calculation();
  });
- $("hubertExample").addEventListener("click",()=>{
+ $("testExample").addEventListener("click",()=>{
+  $("trialKind").value="demo";
+  openedTrialId=null;
   $("target").value="1";$("portions").value="10";$("available").value="15";
   document.querySelector('input[name="densityMode"][value="measure"]').checked=true;
   $("sampleMass").value="25";$("sampleVolume").value="50";$("priming").value="3";$("reserve").value="1";$("shotLimit").value="10";
@@ -590,9 +918,25 @@ input[type=radio],input[type=checkbox]{accent-color:#0e98b2}
  for(const cb of document.querySelectorAll("#checklist input"))cb.addEventListener("change",updateChecklist);
  $("resetChecklist").addEventListener("click",()=>{for(const cb of document.querySelectorAll("#checklist input"))cb.checked=false;updateChecklist()});
  $("clearWeights").addEventListener("click",()=>{for(const el of document.querySelectorAll("[data-weight]"))el.value="";refreshQC()});
- $("saveReport").addEventListener("click",()=>{saveText("DoseRx_ONE_raport.txt",makeReport());$("reportMessage").textContent="Raport został przygotowany do pobrania.";});
+ $("saveReport").addEventListener("click",()=>{download("DoseRx_ONE_raport.txt",new Blob(["\uFEFF",makeReport()],{type:"text/plain;charset=utf-8"}));$("reportMessage").textContent="Raport został przygotowany do pobrania.";});
  $("printReport").addEventListener("click",()=>window.print());
- calculation();updateChecklist();refreshQC();
+ for(const id of ["testDisk","vibration"])$(id).addEventListener("change",updateTrialStatus);
+ $("trialKind").addEventListener("change",()=>{
+  if(value("trialKind")==="real" && !confirmRealTrial())$("trialKind").value="demo";
+  updateTrialStatus();
+ });
+ $("saveTrial").addEventListener("click",saveTrial);
+ $("exportHistory").addEventListener("click",exportHistory);
+ $("importHistory").addEventListener("click",()=>$("historyFile").click());
+ $("historyFile").addEventListener("change",importHistory);
+ $("pdfReport").addEventListener("click",downloadPdf);
+ window.addEventListener("storage",event=>{
+  if(event.key===historyKey || event.key===null){
+   updateTrialStatus();
+   if($("panel-history").classList.contains("active"))showHistory();
+  }
+ });
+ calculation();updateChecklist();
  window.DoseRxAssistTest={collect,pickBest,density};
 })();
 </script>
